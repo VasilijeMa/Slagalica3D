@@ -62,21 +62,41 @@ int main(void)
     float vertices[] =
     {
         //X    Y    Z       R    G    B    A
-        0.25, 0.5, 0.75,   1.0, 0.0, 0.0, 0.0, //Crveni trougao - Prednji
-       -0.25, 0.5, 0.75,   1.0, 0.0, 0.0, 0.0,
-        0.0, -0.5, 0.75,   1.0, 0.0, 0.0, 0.0,
+        -0.75, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, -0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.25, -0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.25, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.25, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, -0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, -0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
 
-        0.25, -0.5, 0.0,   0.0, 0.0, 1.0, 0.0, //Plavi trougao - Zadnji
-       -0.25, -0.5, 0.0,   0.0, 0.0, 1.0, 0.0,
-        0.0,   0.5, 0.0,   0.0, 0.0, 1.0, 0.0,
+        -0.25, -0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.25, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.25, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.25, -0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, -0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, -0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.25, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
 
-        0.25, 0.5, 0.75,   0.0, 1.0, 0.0, 0.0, //Zeleni trougao - Prednji
-        0.0, -0.5, 0.75,   0.0, 1.0, 0.0, 0.0,
-       -0.25, 0.5, 0.75,   0.0, 1.0, 0.0, 0.0,
+        -0.75, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
+        0.75, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
+        0.75, 1.25, 0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, 1.25, 0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, 1.25, -0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
+        0.75, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
+        0.75, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
 
-        0.25, -0.5, 0.0,   1.0, 1.0, 0.0, 0.0, //Zuti trougao - Zadnji
-        0.0,   0.5, 0.0,   1.0, 1.0, 0.0, 0.0,
-       -0.25, -0.5, 0.0,   1.0, 1.0, 0.0, 0.0,
+        0.75, 1.25, -0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, 1.25, -0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, 1.25, 0.25,   1.0, 1.0, 1.0, 1.0,
+        0.75, 1.25, 0.25,   1.0, 1.0, 1.0, 1.0,
+        0.75, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
+        0.75, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
+        -0.75, 1.25, -0.25,   1.0, 1.0, 1.0, 1.0
     };
     unsigned int stride = (3 + 4) * sizeof(float); 
     
@@ -101,6 +121,7 @@ int main(void)
     // ++++++++++++++++++++++++++++++++++++++++++++++++++++++            UNIFORME            +++++++++++++++++++++++++++++++++++++++++++++++++
 
     glm::mat4 model = glm::mat4(1.0f); //Matrica transformacija - mat4(1.0f) generise jedinicnu matricu
+    model = glm::scale(model, glm::vec3(0.75, 0.75, 0.75));
     unsigned int modelLoc = glGetUniformLocation(unifiedShader, "uM");
     
     glm::mat4 view; //Matrica pogleda (kamere)
@@ -117,13 +138,14 @@ int main(void)
     glUseProgram(unifiedShader); //Slanje default vrijednosti uniformi
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionO));
+    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionP));
     glBindVertexArray(VAO);
 
     glClearColor(0.5, 0.5, 0.5, 1.0);
     glCullFace(GL_BACK);//Biranje lica koje ce se eliminisati (tek nakon sto ukljucimo Face Culling)
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    glUniform1f(glGetUniformLocation(unifiedShader, "uY"), -0.25);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -179,9 +201,31 @@ int main(void)
             //model = glm::scale(model, glm::vec3(1/0.99, 1.0, 1.0));
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         }
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        {
+            //model = glm::translate(model, glm::vec3(-0.01, 0.0, 0.0)); //Pomjeranje (Matrica transformacije, pomjeraj po XYZ)
+            model = glm::rotate(model, glm::radians(-0.5f), glm::vec3(1.0f, 0.0f, 0.0f)); //Rotiranje (Matrica transformacije, ugao rotacije u radijanima, osa rotacije)
+            //model = glm::scale(model, glm::vec3(0.99, 1.0, 1.0)); //Skaliranje (Matrica transformacije, skaliranje po XYZ)
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        }
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        {
+            //model = glm::translate(model, glm::vec3(0.01, 0.0, 0.0));
+            model = glm::rotate(model, glm::radians(0.5f), glm::vec3(1.0f, 0.0f, 0.0f));
+            //model = glm::scale(model, glm::vec3(1/0.99, 1.0, 1.0));
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        }
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Osvjezavamo i Z bafer i bafer boje
-        glDrawArrays(GL_TRIANGLES, 0, 12);
+        
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 8);
+        glDrawArrays(GL_TRIANGLE_FAN, 8, 8);
+        glUniform1f(glGetUniformLocation(unifiedShader, "uX"), 1);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 8);
+        glDrawArrays(GL_TRIANGLE_FAN, 8, 8);
+        glUniform1f(glGetUniformLocation(unifiedShader, "uX"), 0);
+        glDrawArrays(GL_TRIANGLE_FAN, 16, 8);
+        glDrawArrays(GL_TRIANGLE_FAN, 24, 8);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
