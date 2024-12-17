@@ -1,9 +1,9 @@
 #version 330 core
 
-in vec4 channelCol;
+in vec3 channelCol;
 out vec4 outCol;
 
 void main()
 {
-	outCol = channelCol;
+	outCol = vec4(channelCol, 1.0);
 }

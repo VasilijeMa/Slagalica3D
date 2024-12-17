@@ -18,6 +18,10 @@
 unsigned int compileShader(GLenum type, const char* source);
 unsigned int createShader(const char* vsSource, const char* fsSource);
 
+void formParallelepiped(int start, float x, float y, float width, float height, float slant = 0.0f, bool isFrustum = false);
+
+float* vertices;
+
 int main(void)
 {
 
@@ -59,47 +63,23 @@ int main(void)
 
     unsigned int unifiedShader = createShader("basic.vert", "basic.frag");
 
-    float vertices[] =
-    {
-        //X    Y    Z       R    G    B    A
-        -0.75, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, -0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.25, -0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.25, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.25, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, -0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, -0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
+    const int parallelepipedCount = 8;
+    vertices = new float[parallelepipedCount * 16 * 6];
 
-        -0.25, -0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.25, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.25, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.25, -0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, -0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, -0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.25, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
-
-        -0.75, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
-        0.75, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
-        0.75, 1.25, 0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, 1.25, 0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, 1.25, -0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
-        0.75, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
-        0.75, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
-
-        0.75, 1.25, -0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, 1.25, -0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, 1.25, 0.25,   1.0, 1.0, 1.0, 1.0,
-        0.75, 1.25, 0.25,   1.0, 1.0, 1.0, 1.0,
-        0.75, 0.75, 0.25,   1.0, 1.0, 1.0, 1.0,
-        0.75, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, 0.75, -0.25,   1.0, 1.0, 1.0, 1.0,
-        -0.75, 1.25, -0.25,   1.0, 1.0, 1.0, 1.0
-    };
-    unsigned int stride = (3 + 4) * sizeof(float); 
+    // slovo P
+    formParallelepiped(0, -0.75 - 2, -0.75, 0.3, 2);
+    formParallelepiped(1, 0.45 - 2, -0.75, 0.3, 2);
+    formParallelepiped(2, -0.45 - 2, 1, 0.9, 0.25);
     
+    // slovo I
+    formParallelepiped(3, -0.75, -0.75, 0.3, 2);
+    formParallelepiped(4, 0.45, -0.75, 0.3, 2);
+    formParallelepiped(5, -0.75, -0.75, 0.3, 2, 1.2);
+
+    // slovo H
+    formParallelepiped(6, -0.75 + 1.9, -0.75, 0.35, 2, 1.15);
+    formParallelepiped(7, 0.4 + 1.9, -0.75, 0.35, 2, -1.15);
+
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
@@ -107,14 +87,14 @@ int main(void)
     unsigned int VBO;
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, parallelepipedCount * 16 * 6 * sizeof(float), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     
 
@@ -125,7 +105,7 @@ int main(void)
     unsigned int modelLoc = glGetUniformLocation(unifiedShader, "uM");
     
     glm::mat4 view; //Matrica pogleda (kamere)
-    view = glm::lookAt(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+    view = glm::lookAt(glm::vec3(0.0f, 0.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
     unsigned int viewLoc = glGetUniformLocation(unifiedShader, "uV");
     
     
@@ -141,7 +121,7 @@ int main(void)
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionP));
     glBindVertexArray(VAO);
 
-    glClearColor(0.5, 0.5, 0.5, 1.0);
+    glClearColor(0.0, 0.0, 0.7, 1.0);
     glCullFace(GL_BACK);//Biranje lica koje ce se eliminisati (tek nakon sto ukljucimo Face Culling)
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -218,14 +198,10 @@ int main(void)
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Osvjezavamo i Z bafer i bafer boje
         
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 8);
-        glDrawArrays(GL_TRIANGLE_FAN, 8, 8);
-        glUniform1f(glGetUniformLocation(unifiedShader, "uX"), 1);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 8);
-        glDrawArrays(GL_TRIANGLE_FAN, 8, 8);
-        glUniform1f(glGetUniformLocation(unifiedShader, "uX"), 0);
-        glDrawArrays(GL_TRIANGLE_FAN, 16, 8);
-        glDrawArrays(GL_TRIANGLE_FAN, 24, 8);
+        for (int i = 0; i < parallelepipedCount; i++) {
+            glDrawArrays(GL_TRIANGLE_FAN, i * 16, 8);
+            glDrawArrays(GL_TRIANGLE_FAN, i * 16 + 8, 8);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -313,4 +289,20 @@ unsigned int createShader(const char* vsSource, const char* fsSource)
     glDeleteShader(fragmentShader);
 
     return program;
+}
+
+
+void formParallelepiped(int start, float x, float y, float width, float height, float slant, bool isFrustum) {
+    for (int i = 0; i < 16; i++) {
+        float deviation = abs(7.5 - i);
+        bool isUp = (i == 8 || abs(4.5 - deviation) <= 1);
+        bool isRight = (i != 0 && (abs(3.5 - deviation) >= 2));
+        bool isBack = (i == 8 || i == 15 || (abs(2.5 - deviation) <= 1));
+        vertices[start * 96 + i * 6] = x + slant * isUp + width * isRight - isFrustum * 2 * slant * (isUp && isRight);
+        vertices[start * 96 + i * 6 + 1] = y + height * isUp;
+        vertices[start * 96 + i * 6 + 2] = 0.15 - 0.3 * isBack;
+        vertices[start * 96 + i * 6 + 3] = 1.0;
+        vertices[start * 96 + i * 6 + 4] = 1.0;
+        vertices[start * 96 + i * 6 + 5] = 1.0;
+    }
 }
