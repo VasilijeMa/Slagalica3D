@@ -1,7 +1,13 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
 #define _USE_MATH_DEFINES
-#define MAX_NUM_SLICES 40
- 
+#define MAX_NUM_SLICES 40 //40
+#define GRAVITY 9.81
+#define FLOOR -2.0
+#define CEILING 5.0
+#define WEIGHT 1.5
+#define LETTER_HEIGHT 2
+#define SCALE 0.75
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -21,7 +27,7 @@ unsigned int compileShader(GLenum type, const char* source);
 unsigned int createShader(const char* vsSource, const char* fsSource);
 
 void formPrism(float x, float y, float width, float height, bool testing, float slant = 0.0f, bool isFrustum = false);
-void formArch(float xc, float yc, float xa, float ya, float phia, float xb, float yb, float phib, bool testing, bool clockwise = false);
+void formArch(float xc, float yc, float xa, float ya, float phia, float xb, float yb, float phib, bool testing);
 void a(bool testing);
 void b(bool testing);
 void v(bool testing);
@@ -52,12 +58,14 @@ void c(bool testing);
 void tch(bool testing);
 void dzh(bool testing);
 void sh(bool testing);
+void space(bool testing);
 
 void writeWord(const std::wstring& word, bool testing = false);
 
 float* vertices;
 
 int location = 0;
+std::vector<int> locations = {};
 float offset = -12;
 
 std::map<int, int> archLocations = {};
@@ -66,8 +74,6 @@ std::vector<int> arches = {};
 
 int main(void)
 {
-
-   
     if (!glfwInit())
     {
         std::cout<<"GLFW Biblioteka se nije ucitala! :(\n";
@@ -103,7 +109,7 @@ int main(void)
 
     unsigned int unifiedShader = createShader("basic.vert", "basic.frag");
 
-    const std::wstring word = L"БАБАКИКИ";
+    const std::wstring word = L"БАБАМИКИ";
     writeWord(word, true);
     const int verticesSize = location * 6;
     vertices = new float[verticesSize];
@@ -132,7 +138,7 @@ int main(void)
     // ++++++++++++++++++++++++++++++++++++++++++++++++++++++            UNIFORME            +++++++++++++++++++++++++++++++++++++++++++++++++
 
     glm::mat4 model = glm::mat4(1.0f); //Matrica transformacija - mat4(1.0f) generise jedinicnu matricu
-    model = glm::scale(model, glm::vec3(0.75, 0.75, 0.75));
+    model = glm::scale(model, glm::vec3(SCALE, SCALE, SCALE));
     unsigned int modelLoc = glGetUniformLocation(unifiedShader, "uM");
     
     glm::mat4 view; //Matrica pogleda (kamere)
@@ -141,7 +147,7 @@ int main(void)
     
     
     glm::mat4 projectionP = glm::perspective(glm::radians(90.0f), (float)wWidth / (float)wHeight, 0.1f, 100.0f); //Matrica perspektivne projekcije (FOV, Aspect Ratio, prednja ravan, zadnja ravan)
-    glm::mat4 projectionO = glm::ortho(-10.0f, 10.0f, -5.0f, 5.0f, 0.1f, 50.0f); //Matrica ortogonalne projekcije (Lijeva, desna, donja, gornja, prednja i zadnja ravan)
+    glm::mat4 projectionO = glm::ortho(-10.0f, 10.0f, -5.0f, 5.0f, -10.0f, 50.0f); //Matrica ortogonalne projekcije (Lijeva, desna, donja, gornja, prednja i zadnja ravan)
     unsigned int projectionLoc = glGetUniformLocation(unifiedShader, "uP");
 
 
@@ -156,11 +162,14 @@ int main(void)
     glCullFace(GL_BACK);//Biranje lica koje ce se eliminisati (tek nakon sto ukljucimo Face Culling)
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-    glUniform1f(glGetUniformLocation(unifiedShader, "uY"), -0.25);
 
+    std::cout << locations.size() << " letters" << std::endl;
+
+    float initial_time = glfwGetTime();
     while (!glfwWindowShouldClose(window))
     {
         double time = glfwGetTime();
+        
         while (glfwGetTime() - time < 1 / 60.0) {}
 
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -228,9 +237,25 @@ int main(void)
         }
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Osvjezavamo i Z bafer i bafer boje
-        
+
         int i = 0;
         while (i < location) {
+            if (locations.back() != -1) {
+                for (int j = 0; j < locations.size(); ++j) {
+                    if (locations[j] == -1 || i >= locations[j]) continue;
+                    float elapsed = std::max(0.0, glfwGetTime() - initial_time - j / 8.0);
+                    float uY = std::min(5.0, std::max(FLOOR, CEILING - elapsed * elapsed * WEIGHT * GRAVITY));
+                    float sY = 1;
+                    if (uY == FLOOR) {
+                        sY = 1 - (sin(elapsed * 20) + 1) / 10.0 / pow(elapsed, 3);
+                        uY += SCALE * (sY * LETTER_HEIGHT / 2.0 - 1);
+                        
+                    }
+                    glm::mat4 letterModel = glm::scale(glm::translate(model, glm::vec3(0, uY, 0)), glm::vec3(1, sY, 1));
+                    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(letterModel));
+                    break;
+                }
+            }
             if (archLocations.count(i) > 0) {
                 glDrawArrays(GL_TRIANGLE_FAN, i, 8);
                 int end = archLocations[i] * 10;
@@ -296,6 +321,7 @@ unsigned int compileShader(GLenum type, const char* source)
     }
     return shader;
 }
+
 unsigned int createShader(const char* vsSource, const char* fsSource)
 {
     unsigned int program;
@@ -331,7 +357,6 @@ unsigned int createShader(const char* vsSource, const char* fsSource)
     return program;
 }
 
-
 void formPrism(float x, float y, float width, float height, bool testing, float slant, bool isFrustum) {
     if (!testing)
         for (int i = 0; i < 16; ++i) {
@@ -349,8 +374,7 @@ void formPrism(float x, float y, float width, float height, bool testing, float 
     location += 16;
 }
 
-
-void formArch(float xc, float yc, float xIn, float yIn, float phiIn, float xOut, float yOut, float phiOut, bool testing, bool clockwise) {
+void formArch(float xc, float yc, float xIn, float yIn, float phiIn, float xOut, float yOut, float phiOut, bool testing) {
     const int numSlices = std::ceil(MAX_NUM_SLICES * std::max(phiIn, phiOut) / 360.0);
     //const int numSlices = 4;
     int numLocations = 16 + 10 * (numSlices - 1);
@@ -362,7 +386,7 @@ void formArch(float xc, float yc, float xIn, float yIn, float phiIn, float xOut,
             bool isOut = ((i + 3) % 10 > 6) ^ isOddFan ^ (abs(1.5 - abs(numLocations - 2 - i)) < 1);
             bool isBack = (i % 10 > 2) ^ isOddFan ^ (abs(3.5 - abs(3 - i)) < 1);
         
-            float phi = gen * (isOut * phiOut + !isOut * phiIn) * M_PI / 180 / numSlices * pow(-1, clockwise);
+            float phi = gen * (isOut * phiOut + !isOut * phiIn) * M_PI / 180 / numSlices;
             float x = isOut * xOut + !isOut * xIn;
             float y = isOut * yOut + !isOut * yIn;
 
@@ -378,9 +402,9 @@ void formArch(float xc, float yc, float xIn, float yIn, float phiIn, float xOut,
 }
 
 void a(bool testing) {
-    formPrism(offset, -0.75, 0.35, 2, testing, 0.65);
+    formPrism(offset, -0.75, 0.35, LETTER_HEIGHT, testing, 0.65);
     formPrism(0.5 + offset, -0.25, 0.8, 0.25, testing);
-    formPrism(1.45 + offset, -0.75, 0.35, 2, testing, -0.65);
+    formPrism(1.45 + offset, -0.75, 0.35, LETTER_HEIGHT, testing, -0.65);
     if (!testing) offset += 2.2;
 }
 void b(bool testing) {
@@ -388,7 +412,7 @@ void b(bool testing) {
     formPrism(0.3 + offset, 1, 1, 0.25, testing);
     formPrism(0.3 + offset, 0.125, 0.6, 0.25, testing);
     formPrism(0.3 + offset, -0.75, 0.6, 0.25, testing);
-    formArch(0.9 + offset, -0.1875, 0.9 + offset, 0.125, 180, 0.9 + offset, 0.375, 180, testing, true);
+    formArch(0.9 + offset, -0.1875, 0.9 + offset, -0.5, 180, 0.9 + offset, -0.75, 180, testing);
     if (!testing) offset += 1.85;
 }
 void v(bool testing) {
@@ -396,7 +420,7 @@ void v(bool testing) {
     formPrism(0.3 + offset, 1, 0.6, 0.25, testing);
     formPrism(0.3 + offset, 0.125, 0.6, 0.25, testing);
     formPrism(0.3 + offset, -0.75, 0.6, 0.25, testing);
-    formArch(0.9 + offset, -0.1875, 0.9 + offset, 0.125, 180, 0.9 + offset, 0.375, 180, testing, true);
+    formArch(0.9 + offset, -0.1875, 0.9 + offset, -0.5, 180, 0.9 + offset, -0.75, 180, testing);
     formArch(0.9 + offset, 0.69, 0.9 + offset, 0.375, 180, 0.9 + offset, 0.125, 180, testing);
     if (!testing) offset += 1.85;
 }
@@ -527,6 +551,10 @@ void sh(bool testing) {
     if(!testing) offset += 2.7;
 }
 
+void space(bool testing) {
+    if (!testing) offset += 2;
+}
+
 //int getPrismCount(const std::wstring& word) {
 //    int count = 0;
 //    for (wchar_t letter : word) {
@@ -628,6 +656,10 @@ void writeWord(const std::wstring& word, bool testing) {
         case L'Ш':
             sh(testing);
             break;
+        case L' ':
+            space(testing);
+            break;
         }
+        if (letter != L' ' && testing) locations.push_back(location);
     }
 }
