@@ -24,6 +24,7 @@
     <ProjectGuid>{ec504904-6d9a-4e9b-8926-2b453c6c69b4}</ProjectGuid>
     <RootNamespace>Sablon</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Slagalica3D</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
