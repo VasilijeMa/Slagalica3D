@@ -26,8 +26,8 @@
 unsigned int compileShader(GLenum type, const char* source);
 unsigned int createShader(const char* vsSource, const char* fsSource);
 
-void formPrism(float x, float y, float width, float height, bool testing, float slant = 0.0f, bool isFrustum = false);
-void formArch(float xc, float yc, float xa, float ya, float phia, float xb, float yb, float phib, bool testing);
+void formPrism(float x, float y, float width, float height, bool testing, float slantHorizontal = 0.0f, float slantVertical = 0.0f, bool isFrustum = false);
+void formArch(float xc, float yc, float xa, float ya, float phia, float xb, float yb, float phib, bool testing, float widthCoef = 1.0f);
 void a(bool testing);
 void b(bool testing);
 void v(bool testing);
@@ -109,13 +109,22 @@ int main(void)
 
     unsigned int unifiedShader = createShader("basic.vert", "basic.frag");
 
-    const std::wstring word = L"БАБАМИКИ";
+    const std::wstring word = L"СЛАГАЛИЦА";
     writeWord(word, true);
-    const int verticesSize = location * 6;
+    const int verticesSize = (location + 4) * 6;
     vertices = new float[verticesSize];
     //std::cout << verticesSize / 6;
     location = 0;
     writeWord(word);
+    for (int i = 0; i < 4; ++i) {
+        vertices[location * 6 + i * 6] = 20 * pow(-1, abs(i - 1.5) > 1);
+        vertices[location * 6 + i * 6 + 1] = FLOOR - 0.75;
+        vertices[location * 6 + i * 6 + 2] = 20 * pow(-1, abs(i - 2.5) < 1);
+        std::cout << vertices[location * 6 + i * 6] << ", " << vertices[location * 6 + i * 6 + 2] << std::endl;
+        vertices[location * 6 + i * 6 + 3] = 0.4;
+        vertices[location * 6 + i * 6 + 4] = 0.5;
+        vertices[location * 6 + i * 6 + 5] = 1.0;
+    }
 
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
@@ -150,7 +159,7 @@ int main(void)
     glm::mat4 projectionO = glm::ortho(-10.0f, 10.0f, -5.0f, 5.0f, -10.0f, 50.0f); //Matrica ortogonalne projekcije (Lijeva, desna, donja, gornja, prednja i zadnja ravan)
     unsigned int projectionLoc = glGetUniformLocation(unifiedShader, "uP");
 
-
+    unsigned int colorLoc = glGetUniformLocation(unifiedShader, "white");
     // ++++++++++++++++++++++++++++++++++++++++++++++++++++++ RENDER LOOP - PETLJA ZA CRTANJE +++++++++++++++++++++++++++++++++++++++++++++++++
     glUseProgram(unifiedShader); //Slanje default vrijednosti uniformi
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
@@ -162,6 +171,7 @@ int main(void)
     glCullFace(GL_BACK);//Biranje lica koje ce se eliminisati (tek nakon sto ukljucimo Face Culling)
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    bool white = true;
 
     std::cout << locations.size() << " letters" << std::endl;
 
@@ -177,6 +187,7 @@ int main(void)
             glfwSetWindowShouldClose(window, GL_TRUE);
         }
 
+        glUniform1i(colorLoc, white);
         //Testiranje dubine
         if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
         {
@@ -197,6 +208,14 @@ int main(void)
             glDisable(GL_CULL_FACE);
         }
 
+        if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
+        {
+            white = true;
+        }
+        if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS)
+        {
+            white = false;
+        }
         //Mijenjanje projekcija
         if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
         {
@@ -270,6 +289,9 @@ int main(void)
                 i += 16;
             }
         }
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniform1i(colorLoc, false);
+        glDrawArrays(GL_TRIANGLE_FAN, i, 4);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -357,24 +379,24 @@ unsigned int createShader(const char* vsSource, const char* fsSource)
     return program;
 }
 
-void formPrism(float x, float y, float width, float height, bool testing, float slant, bool isFrustum) {
+void formPrism(float x, float y, float width, float height, bool testing, float slantHorizontal, float slantVertical, bool isFrustum) {
     if (!testing)
         for (int i = 0; i < 16; ++i) {
             float deviation = abs(7.5 - i);
             bool isUp = (i == 8 || abs(4.5 - deviation) <= 1);
             bool isRight = (i != 0 && (abs(3.5 - deviation) >= 2));
             bool isBack = (i == 8 || i == 15 || (abs(2.5 - deviation) <= 1));
-            vertices[location * 6 + i * 6] = x + slant * isUp + width * isRight - isFrustum * 2 * slant * (isUp && isRight);
-            vertices[location * 6 + i * 6 + 1] = y + height * isUp;
+            vertices[location * 6 + i * 6] = x + slantHorizontal * isUp + width * isRight - isFrustum * 2 * slantHorizontal * (isUp && isRight);
+            vertices[location * 6 + i * 6 + 1] = y + height * isUp + slantVertical * isRight;
             vertices[location * 6 + i * 6 + 2] = 0.15 - 0.3 * isBack;
-            vertices[location * 6 + i * 6 + 3] = 1.0;
-            vertices[location * 6 + i * 6 + 4] = 1.0;
-            vertices[location * 6 + i * 6 + 5] = 1.0;
+            vertices[location * 6 + i * 6 + 3] = isUp;
+            vertices[location * 6 + i * 6 + 4] = isRight;
+            vertices[location * 6 + i * 6 + 5] = isBack;
         }
     location += 16;
 }
 
-void formArch(float xc, float yc, float xIn, float yIn, float phiIn, float xOut, float yOut, float phiOut, bool testing) {
+void formArch(float xc, float yc, float xIn, float yIn, float phiIn, float xOut, float yOut, float phiOut, bool testing, float widthCoef) {
     const int numSlices = std::ceil(MAX_NUM_SLICES * std::max(phiIn, phiOut) / 360.0);
     //const int numSlices = 4;
     int numLocations = 16 + 10 * (numSlices - 1);
@@ -390,21 +412,22 @@ void formArch(float xc, float yc, float xIn, float yIn, float phiIn, float xOut,
             float x = isOut * xOut + !isOut * xIn;
             float y = isOut * yOut + !isOut * yIn;
 
-            vertices[location * 6 + i * 6] = xc + (x - xc) * cos(phi) - (y - yc) * sin(phi);
+            vertices[location * 6 + i * 6] = xc + ((x - xc) * cos(phi) - (y - yc) * sin(phi)) * widthCoef;
             vertices[location * 6 + i * 6 + 1] = yc + (x - xc) * sin(phi) + (y - yc) * cos(phi);
             vertices[location * 6 + i * 6 + 2] = 0.15 - 0.3 * isBack;
-            vertices[location * 6 + i * 6 + 3] = 1.0;
-            vertices[location * 6 + i * 6 + 4] = 1.0;
-            vertices[location * 6 + i * 6 + 5] = 1.0;
+            vertices[location * 6 + i * 6 + 3] = isOddFan;
+            vertices[location * 6 + i * 6 + 4] = isOut;
+            vertices[location * 6 + i * 6 + 5] = isBack;
         }
     else archLocations[location] = numSlices - 1;
     location += numLocations;
 }
 
 void a(bool testing) {
-    formPrism(offset, -0.75, 0.35, LETTER_HEIGHT, testing, 0.65);
-    formPrism(0.5 + offset, -0.25, 0.8, 0.25, testing);
-    formPrism(1.45 + offset, -0.75, 0.35, LETTER_HEIGHT, testing, -0.65);
+    formPrism(offset, -0.75, 0.35, 22 / 13.0, testing, 0.55);
+    formPrism(1.45 + offset, -0.75, 0.35, 22 / 13.0, testing, -0.55);
+    formPrism(0.55 + offset, -7 / 52.0, 0.7, 4 / 13.0, testing, 0.1, 0, true);
+    formPrism(0.55 + offset, 49 / 52.0, 0.7, 4 / 13.0, testing, 0.1, 0, true);
     if (!testing) offset += 2.2;
 }
 void b(bool testing) {
@@ -423,6 +446,7 @@ void v(bool testing) {
     formArch(0.9 + offset, -0.1875, 0.9 + offset, -0.5, 180, 0.9 + offset, -0.75, 180, testing);
     formArch(0.9 + offset, 0.69, 0.9 + offset, 0.375, 180, 0.9 + offset, 0.125, 180, testing);
     if (!testing) offset += 1.85;
+    //TODO: fix z fighting
 }
 void g(bool testing) {
     formPrism(offset, -0.75, 0.3, 1.75, testing);
@@ -450,6 +474,7 @@ void zh(bool testing) {
     formPrism(0.9 + offset, 0.05, 0.7, 0.4, testing);
     formPrism(2.1 + offset, -0.75, 0.4, 1, testing, -0.7);
     if (!testing) offset += 2.9;
+    //TODO: fix z fighting
 }
 void z(bool testing) {
 
@@ -457,7 +482,7 @@ void z(bool testing) {
 void i(bool testing) {
     formPrism(offset, -0.75, 0.3, 2, testing);
     formPrism(1.2 + offset, -0.75, 0.3, 2, testing);
-    formPrism(offset, -0.75, 0.3, 2, testing, 1.2);
+    formPrism(offset + 0.3, -0.75, 0.9, 0.5, testing, 0, 1.5);
     if (!testing) offset += 1.9;
 }
 void j(bool testing) {
@@ -469,9 +494,14 @@ void k(bool testing) {
     formPrism(0.3 + offset, 0.05, 0.2, 0.4, testing);
     formPrism(1 + offset, -0.75, 0.4, 1, testing, -0.7);
     if (!testing) offset += 1.8;
+    //TODO: fix z fighting
 }
 void l(bool testing) {
-
+    formArch(offset, 0, offset, -0.45, 90, offset, -0.75, 90, testing);
+    formPrism(offset + 0.45, 0, 0.3, 1.25, testing);
+    formPrism(1.45 + offset, -0.75, 0.3, 2, testing);
+    formPrism(0.75 + offset, 1, 0.7, 0.25, testing);
+    if (!testing) offset += 2.05;
 }
 void lj(bool testing) {
 
@@ -482,6 +512,7 @@ void m(bool testing) {
     formPrism(1 + offset, -0.75, 0.3, 2, testing, 0.8);
     formPrism(1 + offset, -0.75, 0.3, 2, testing, -0.8);
     if (!testing) offset += 2.7;
+    //TODO: fix z fighting
 }
 void n(bool testing) {
     formPrism(offset, -0.75, 0.3, 2, testing);
@@ -493,7 +524,8 @@ void nj(bool testing) {
 
 }
 void o(bool testing) {
-
+    formArch(offset + 0.75, 0.25, offset + 0.75 + 0.6 / sqrt(2), 0.25 + 0.6 / sqrt(2), 360, offset + 0.75 + 1 / sqrt(2), 0.25 + 1 / sqrt(2), 360, testing, 0.75);
+    if (!testing) offset += 1.9;
 }
 void p(bool testing) {
     formPrism(offset, -0.75, 0.3, 2, testing);
@@ -505,7 +537,8 @@ void r(bool testing) {
 
 }
 void s(bool testing) {
-
+    formArch(offset + 0.75, 0.25, offset + 0.75 + 0.6 / sqrt(2), 0.25 + 0.6 / sqrt(2), 270, offset + 0.75 + 1 / sqrt(2), 0.25 + 1 / sqrt(2), 270, testing, 0.75);
+    if (!testing) offset += 1.7;
 }
 void t(bool testing) {
     formPrism(offset + 0.6, -0.75, 0.3, 1.75, testing);
@@ -525,12 +558,13 @@ void h(bool testing) {
     formPrism(offset, -0.75, 0.35, 2, testing, 1.15);
     formPrism(1.15 + offset, -0.75, 0.35, 2, testing, -1.15);
     if (!testing) offset += 1.9;
+    //TODO: fix z fighting
 }
 void c(bool testing) {
-    formPrism(offset, -0.75, 0.3, 2, testing);
-    formPrism(1.2 + offset, -0.5, 0.3, 1.75, testing);
-    formPrism(0.3 + offset, -0.75, 1.4, 0.25, testing);
-    formPrism(1.4 + offset, -1.25, 0.3, 0.5, testing);
+    formPrism(offset, -0.3, 0.3, 1.55, testing);
+    formPrism(1.2 + offset, -0.3, 0.3, 1.55, testing);
+    formPrism(offset, -0.55, 1.7, 0.25, testing);
+    formPrism(1.4 + offset, -0.75, 0.3, 0.2, testing);
     if (!testing) offset += 2.1;
 }
 void tch(bool testing) {
