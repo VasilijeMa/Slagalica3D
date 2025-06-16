@@ -80,7 +80,6 @@ int main(void)
         return 1;
     }
 
-
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -111,20 +110,28 @@ int main(void)
 
     const std::wstring word = L"СЛАГАЛИЦА";
     writeWord(word, true);
-    const int verticesSize = (location + 4) * 6;
+    std::cout << "Lokacije za slova: " << location << std::endl;
+    const int verticesSize = (location + MAX_NUM_SLICES + 2) * 6;
+    location = MAX_NUM_SLICES + 2;
+    std::cout << "Za krug: " << location << std::endl;
     vertices = new float[verticesSize];
-    //std::cout << verticesSize / 6;
-    location = 0;
-    writeWord(word);
-    for (int i = 0; i < 4; ++i) {
-        vertices[location * 6 + i * 6] = 20 * pow(-1, abs(i - 1.5) > 1);
-        vertices[location * 6 + i * 6 + 1] = FLOOR - 0.75;
-        vertices[location * 6 + i * 6 + 2] = 20 * pow(-1, abs(i - 2.5) < 1);
-        std::cout << vertices[location * 6 + i * 6] << ", " << vertices[location * 6 + i * 6 + 2] << std::endl;
-        vertices[location * 6 + i * 6 + 3] = 0.4;
-        vertices[location * 6 + i * 6 + 4] = 0.5;
-        vertices[location * 6 + i * 6 + 5] = 1.0;
+    std::cout << "Konacno: " << (location * 6 + verticesSize) / 6 << std::endl;
+    vertices[0] = 0;
+    vertices[1] = FLOOR - 0.75;
+    vertices[2] = 0;
+    vertices[3] = 0.4;
+    vertices[4] = 0.5;
+    vertices[5] = 1.0;
+    for (int i = 1; i < location; ++i) {
+        float phi = 2 * M_PI * i / MAX_NUM_SLICES;
+        vertices[i * 6] = 20 * sin(phi);
+        vertices[i * 6 + 1] = FLOOR - 0.75;
+        vertices[i * 6 + 2] = 20 * cos(-phi);
+        vertices[i * 6 + 3] = 0.1;
+        vertices[i * 6 + 4] = 0.2;
+        vertices[i * 6 + 5] = 1.0;
     }
+    writeWord(word);
 
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
@@ -151,11 +158,11 @@ int main(void)
     unsigned int modelLoc = glGetUniformLocation(unifiedShader, "uM");
     
     glm::mat4 view; //Matrica pogleda (kamere)
-    view = glm::lookAt(glm::vec3(0.0f, 0.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+    view = glm::lookAt(glm::vec3(6.0f, 5.0f, 15.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
     unsigned int viewLoc = glGetUniformLocation(unifiedShader, "uV");
     
     
-    glm::mat4 projectionP = glm::perspective(glm::radians(90.0f), (float)wWidth / (float)wHeight, 0.1f, 100.0f); //Matrica perspektivne projekcije (FOV, Aspect Ratio, prednja ravan, zadnja ravan)
+    //glm::mat4 projectionP = glm::perspective(glm::radians(90.0f), (float)wWidth / (float)wHeight, 0.1f, 100.0f); //Matrica perspektivne projekcije (FOV, Aspect Ratio, prednja ravan, zadnja ravan)
     glm::mat4 projectionO = glm::ortho(-10.0f, 10.0f, -5.0f, 5.0f, -10.0f, 50.0f); //Matrica ortogonalne projekcije (Lijeva, desna, donja, gornja, prednja i zadnja ravan)
     unsigned int projectionLoc = glGetUniformLocation(unifiedShader, "uP");
 
@@ -187,7 +194,6 @@ int main(void)
             glfwSetWindowShouldClose(window, GL_TRUE);
         }
 
-        glUniform1i(colorLoc, white);
         //Testiranje dubine
         if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
         {
@@ -216,15 +222,15 @@ int main(void)
         {
             white = false;
         }
-        //Mijenjanje projekcija
-        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
-        {
-            glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionP));
-        }
-        if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
-        {
-            glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionO));
-        }
+        ////Mijenjanje projekcija
+        //if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+        //{
+        //    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionP));
+        //}
+        //if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
+        //{
+        //    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionO));
+        //}
         //Transformisanje trouglova
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
         {
@@ -240,40 +246,42 @@ int main(void)
             //model = glm::scale(model, glm::vec3(1/0.99, 1.0, 1.0));
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         }
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        {
-            //model = glm::translate(model, glm::vec3(-0.01, 0.0, 0.0)); //Pomjeranje (Matrica transformacije, pomjeraj po XYZ)
-            model = glm::rotate(model, glm::radians(-0.5f), glm::vec3(1.0f, 0.0f, 0.0f)); //Rotiranje (Matrica transformacije, ugao rotacije u radijanima, osa rotacije)
-            //model = glm::scale(model, glm::vec3(0.99, 1.0, 1.0)); //Skaliranje (Matrica transformacije, skaliranje po XYZ)
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        }
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        {
-            //model = glm::translate(model, glm::vec3(0.01, 0.0, 0.0));
-            model = glm::rotate(model, glm::radians(0.5f), glm::vec3(1.0f, 0.0f, 0.0f));
-            //model = glm::scale(model, glm::vec3(1/0.99, 1.0, 1.0));
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        }
+        //if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        //{
+        //    //model = glm::translate(model, glm::vec3(-0.01, 0.0, 0.0)); //Pomjeranje (Matrica transformacije, pomjeraj po XYZ)
+        //    model = glm::rotate(model, glm::radians(-0.5f), glm::vec3(1.0f, 0.0f, 0.0f)); //Rotiranje (Matrica transformacije, ugao rotacije u radijanima, osa rotacije)
+        //    //model = glm::scale(model, glm::vec3(0.99, 1.0, 1.0)); //Skaliranje (Matrica transformacije, skaliranje po XYZ)
+        //    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        //}
+        //if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        //{
+        //    //model = glm::translate(model, glm::vec3(0.01, 0.0, 0.0));
+        //    model = glm::rotate(model, glm::radians(0.5f), glm::vec3(1.0f, 0.0f, 0.0f));
+        //    //model = glm::scale(model, glm::vec3(1/0.99, 1.0, 1.0));
+        //    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        //}
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Osvjezavamo i Z bafer i bafer boje
 
-        int i = 0;
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniform1i(colorLoc, false);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, MAX_NUM_SLICES + 2);
+        glUniform1i(colorLoc, white);
+        int i = MAX_NUM_SLICES + 2;
+        
         while (i < location) {
-            if (locations.back() != -1) {
-                for (int j = 0; j < locations.size(); ++j) {
-                    if (locations[j] == -1 || i >= locations[j]) continue;
-                    float elapsed = std::max(0.0, glfwGetTime() - initial_time - j / 8.0);
-                    float uY = std::min(5.0, std::max(FLOOR, CEILING - elapsed * elapsed * WEIGHT * GRAVITY));
-                    float sY = 1;
-                    if (uY == FLOOR) {
-                        sY = 1 - (sin(elapsed * 20) + 1) / 10.0 / pow(elapsed, 3);
-                        uY += SCALE * (sY * LETTER_HEIGHT / 2.0 - 1);
-                        
-                    }
-                    glm::mat4 letterModel = glm::scale(glm::translate(model, glm::vec3(0, uY, 0)), glm::vec3(1, sY, 1));
-                    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(letterModel));
-                    break;
+            for (int j = 0; j < locations.size(); ++j) {
+                if (i >= locations[j]) continue;
+                float elapsed = std::max(0.0, glfwGetTime() - initial_time - j / 8.0);
+                float uY = std::min(5.0, std::max(FLOOR, CEILING - elapsed * elapsed * WEIGHT * GRAVITY));
+                float sY = 1;
+                if (uY == FLOOR) {
+                    sY = 1 - (sin(elapsed * 20) + 1) / 10.0 / pow(elapsed, 3);
+                    uY += SCALE * (sY * LETTER_HEIGHT / 2.0 - 1);
                 }
+                glm::mat4 letterModel = glm::scale(glm::translate(model, glm::vec3(0, uY, 0)), glm::vec3(1, sY, 1));
+                glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(letterModel));
+                break;
             }
             if (archLocations.count(i) > 0) {
                 glDrawArrays(GL_TRIANGLE_FAN, i, 8);
@@ -289,10 +297,7 @@ int main(void)
                 i += 16;
             }
         }
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        glUniform1i(colorLoc, false);
-        glDrawArrays(GL_TRIANGLE_FAN, i, 4);
-
+        
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -398,7 +403,6 @@ void formPrism(float x, float y, float width, float height, bool testing, float 
 
 void formArch(float xc, float yc, float xIn, float yIn, float phiIn, float xOut, float yOut, float phiOut, bool testing, float widthCoef) {
     const int numSlices = std::ceil(MAX_NUM_SLICES * std::max(phiIn, phiOut) / 360.0);
-    //const int numSlices = 4;
     int numLocations = 16 + 10 * (numSlices - 1);
     // maksimalno 406 za max_n = 40, polukrug 206
     if (!testing)
@@ -418,8 +422,8 @@ void formArch(float xc, float yc, float xIn, float yIn, float phiIn, float xOut,
             vertices[location * 6 + i * 6 + 3] = isOddFan;
             vertices[location * 6 + i * 6 + 4] = isOut;
             vertices[location * 6 + i * 6 + 5] = isBack;
+            archLocations[location] = numSlices - 1;
         }
-    else archLocations[location] = numSlices - 1;
     location += numLocations;
 }
 
@@ -486,7 +490,9 @@ void i(bool testing) {
     if (!testing) offset += 1.9;
 }
 void j(bool testing) {
-
+    formArch(offset, -0.2, offset, -0.45, 90, offset, -0.75, 90, testing);
+    formPrism(offset + 0.25, -0.2, 0.3, 1.45, testing);
+    if (!testing) offset += 0.95;
 }
 void k(bool testing) {
     formPrism(offset, -0.75, 0.3, 2, testing);
@@ -497,21 +503,21 @@ void k(bool testing) {
     //TODO: fix z fighting
 }
 void l(bool testing) {
-    formArch(offset, 0, offset, -0.45, 90, offset, -0.75, 90, testing);
-    formPrism(offset + 0.45, 0, 0.3, 1.25, testing);
-    formPrism(1.45 + offset, -0.75, 0.3, 2, testing);
-    formPrism(0.75 + offset, 1, 0.7, 0.25, testing);
-    if (!testing) offset += 2.05;
+    formArch(offset, -0.2, offset, -0.45, 90, offset, -0.75, 90, testing);
+    formPrism(offset + 0.25, -0.2, 0.3, 1.45, testing);
+    formPrism(1.25 + offset, -0.75, 0.3, 2, testing);
+    formPrism(0.55 + offset, 1, 0.7, 0.25, testing);
+    if (!testing) offset += 1.95;
 }
 void lj(bool testing) {
 
 }
 void m(bool testing) {
     formPrism(offset, -0.75, 0.3, 2, testing);
-    formPrism(2 + offset, -0.75, 0.3, 2, testing);
-    formPrism(1 + offset, -0.75, 0.3, 2, testing, 0.8);
-    formPrism(1 + offset, -0.75, 0.3, 2, testing, -0.8);
-    if (!testing) offset += 2.7;
+    formPrism(1.9 + offset, -0.75, 0.3, 2, testing);
+    formPrism(offset + 0.3, 0.75, 0.8, 0.5, testing, 0, -1.5);
+    formPrism(offset + 1.1, -0.75, 0.8, 0.5, testing, 0, 1.5);
+    if (!testing) offset += 2.5;
     //TODO: fix z fighting
 }
 void n(bool testing) {
@@ -524,8 +530,8 @@ void nj(bool testing) {
 
 }
 void o(bool testing) {
-    formArch(offset + 0.75, 0.25, offset + 0.75 + 0.6 / sqrt(2), 0.25 + 0.6 / sqrt(2), 360, offset + 0.75 + 1 / sqrt(2), 0.25 + 1 / sqrt(2), 360, testing, 0.75);
-    if (!testing) offset += 1.9;
+    formArch(offset + 0.9, 0.25, offset + 0.9 + 0.7 / sqrt(2), 0.25 + 0.7 / sqrt(2), 360, offset + 0.9 + 1 / sqrt(2), 0.25 + 1 / sqrt(2), 360, testing, 0.9);
+    if (!testing) offset += 2;
 }
 void p(bool testing) {
     formPrism(offset, -0.75, 0.3, 2, testing);
@@ -534,11 +540,15 @@ void p(bool testing) {
     if (!testing) offset += 1.9;
 }
 void r(bool testing) {
-
+    formPrism(offset, -0.75, 0.3, 2, testing);
+    formPrism(0.3 + offset, 1, 0.6, 0.25, testing);
+    formPrism(0.3 + offset, 0.125, 0.6, 0.25, testing);
+    formArch(0.9 + offset, 0.69, 0.9 + offset, 0.375, 180, 0.9 + offset, 0.125, 180, testing);
+    if (!testing) offset += 1.85;
 }
 void s(bool testing) {
-    formArch(offset + 0.75, 0.25, offset + 0.75 + 0.6 / sqrt(2), 0.25 + 0.6 / sqrt(2), 270, offset + 0.75 + 1 / sqrt(2), 0.25 + 1 / sqrt(2), 270, testing, 0.75);
-    if (!testing) offset += 1.7;
+    formArch(offset + 0.9, 0.25, offset + 0.9 + 0.7 / sqrt(2), 0.25 + 0.7 / sqrt(2), 270, offset + 0.9 + 1 / sqrt(2), 0.25 + 1 / sqrt(2), 270, testing, 0.9);
+    if (!testing) offset += 1.9;
 }
 void t(bool testing) {
     formPrism(offset + 0.6, -0.75, 0.3, 1.75, testing);
@@ -586,7 +596,7 @@ void sh(bool testing) {
 }
 
 void space(bool testing) {
-    if (!testing) offset += 2;
+    if (!testing) offset += 1.5;
 }
 
 //int getPrismCount(const std::wstring& word) {
@@ -694,6 +704,6 @@ void writeWord(const std::wstring& word, bool testing) {
             space(testing);
             break;
         }
-        if (letter != L' ' && testing) locations.push_back(location);
+        if (letter != L' ' && !testing) locations.push_back(location);
     }
 }
