@@ -147,6 +147,14 @@
     <None Include="basic.frag" />
     <None Include="basic.vert" />
     <None Include="packages.config" />
+    <None Include="tex.frag" />
+    <None Include="tex.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stb_image.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\logo.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
