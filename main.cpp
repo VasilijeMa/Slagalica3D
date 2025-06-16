@@ -61,6 +61,7 @@ void sh(bool testing);
 void space(bool testing);
 
 void writeWord(const std::wstring& word, bool testing = false);
+int numLetters(const std::wstring& text);
 
 float* vertices;
 
@@ -69,6 +70,7 @@ std::vector<int> locations = {};
 float offset = -12;
 
 std::map<int, int> archLocations = {};
+std::vector<int> wordLengths = {};
 
 std::vector<int> arches = {};
 
@@ -85,10 +87,11 @@ int main(void)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     GLFWwindow* window;
-    unsigned int wWidth = 1800;
-    unsigned int wHeight = 900;
-    const char wTitle[] = "[Generic Title]";
-    window = glfwCreateWindow(wWidth, wHeight, wTitle, NULL, NULL);
+    const char wTitle[] = "Slagalica";
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+    window = glfwCreateWindow(mode->width, mode->height, wTitle, monitor, NULL);
     
     if (window == NULL)
     {
@@ -108,14 +111,20 @@ int main(void)
 
     unsigned int unifiedShader = createShader("basic.vert", "basic.frag");
 
-    const std::wstring word = L"СЛАГАЛИЦА";
-    writeWord(word, true);
-    std::cout << "Lokacije za slova: " << location << std::endl;
-    const int verticesSize = (location + MAX_NUM_SLICES + 2) * 6;
+    const std::vector<std::wstring> words = { L"СЛАГАЛИЦА", L"МОЈ БРОЈ"};
+    int wordIndex = 0;
     location = MAX_NUM_SLICES + 2;
-    std::cout << "Za krug: " << location << std::endl;
+    for (std::wstring word : words) {
+        writeWord(word, true);
+        wordLengths.push_back(location);
+    }
+    for (int length : wordLengths) {
+        std::cout << length << std::endl;
+    }
+    const int verticesSize = location * 6;
+    location = MAX_NUM_SLICES + 2;
     vertices = new float[verticesSize];
-    std::cout << "Konacno: " << (location * 6 + verticesSize) / 6 << std::endl;
+
     vertices[0] = 0;
     vertices[1] = FLOOR - 0.75;
     vertices[2] = 0;
@@ -131,13 +140,17 @@ int main(void)
         vertices[i * 6 + 4] = 0.2;
         vertices[i * 6 + 5] = 1.0;
     }
-    writeWord(word);
+    for (std::wstring word : words) {
+        offset = -12;
+        writeWord(word);
+    }
 
     unsigned int VAO;
+    unsigned int VBO;
+
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-    unsigned int VBO;
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, verticesSize * sizeof(float), vertices, GL_STATIC_DRAW);
@@ -149,7 +162,7 @@ int main(void)
     glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
-    
+    bool enterPressed = false;
 
     // ++++++++++++++++++++++++++++++++++++++++++++++++++++++            UNIFORME            +++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -182,7 +195,7 @@ int main(void)
 
     std::cout << locations.size() << " letters" << std::endl;
 
-    float initial_time = glfwGetTime();
+    float initialTime = glfwGetTime();
     while (!glfwWindowShouldClose(window))
     {
         double time = glfwGetTime();
@@ -246,6 +259,16 @@ int main(void)
             //model = glm::scale(model, glm::vec3(1/0.99, 1.0, 1.0));
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         }
+        if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && !enterPressed)
+        {
+            enterPressed = true;
+            wordIndex = (wordIndex + 1) % words.size();
+            initialTime = glfwGetTime();
+        }
+        else if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_RELEASE)
+        {
+            enterPressed = false;
+        }
         //if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         //{
         //    //model = glm::translate(model, glm::vec3(-0.01, 0.0, 0.0)); //Pomjeranje (Matrica transformacije, pomjeraj po XYZ)
@@ -268,11 +291,16 @@ int main(void)
         glDrawArrays(GL_TRIANGLE_FAN, 0, MAX_NUM_SLICES + 2);
         glUniform1i(colorLoc, white);
         int i = MAX_NUM_SLICES + 2;
+        if (wordIndex > 0) i = wordLengths[wordIndex - 1];
         
-        while (i < location) {
+        while (i < wordLengths[wordIndex]) {
             for (int j = 0; j < locations.size(); ++j) {
                 if (i >= locations[j]) continue;
-                float elapsed = std::max(0.0, glfwGetTime() - initial_time - j / 8.0);
+                int letterIndex = j;
+                for (int k = 0; k < wordIndex; ++k) {
+                    letterIndex -= numLetters(words[k]);
+                }
+                float elapsed = std::max(0.0, glfwGetTime() - initialTime - letterIndex / 8.0);
                 float uY = std::min(5.0, std::max(FLOOR, CEILING - elapsed * elapsed * WEIGHT * GRAVITY));
                 float sY = 1;
                 if (uY == FLOOR) {
@@ -706,4 +734,12 @@ void writeWord(const std::wstring& word, bool testing) {
         }
         if (letter != L' ' && !testing) locations.push_back(location);
     }
+}
+
+int numLetters(const std::wstring& text) {
+    int count = 0;
+    for (wchar_t ch : text) {
+        if (ch != L' ') ++count;
+    }
+    return count;
 }
